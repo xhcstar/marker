@@ -33,9 +33,17 @@ TABLE_LINES_STRONG = 12          # 单页水平/垂直短线数量
 IMAGE_COVERAGE_SCANNED = 0.55    # 图片覆盖率视作扫描页
 CODE_LINES_STRONG = 6            # 单页疑似代码行
 
-FAST_EXTS = {".txt", ".md", ".markdown", ".docx", ".doc", ".pptx", ".ppt",
-             ".xlsx", ".xls", ".html", ".htm", ".epub", ".csv", ".rtf"}
+FAST_EXTS = {".txt", ".md", ".markdown", ".docx", ".pptx",
+             ".xlsx", ".xls", ".html", ".htm", ".epub", ".csv"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp", ".gif"}
+
+# 快速引擎（markitdown）**没有对应转换器**、但内置极速引擎（anydoc，纯 Rust）支持的格式。
+#
+# 依据（实测 markitdown 的转换器清单，只有这些）：
+#   Docx / Pptx / Xls / Xlsx / Epub / Pdf / Html / Csv / PlainText / Image / Zip / …
+# 也就是说它**没有 Word 97-2003 的 .doc，也没有 .ppt（只有 pptx）**，RTF 同样没有。
+# 这些格式交给快速引擎必然报错，而 anydoc 自带解析器、无需任何装配，所以直接路由给它。
+ANYDOC_EXTS = {".doc", ".ppt", ".pps", ".pot", ".rtf", ".odt", ".ods", ".odp"}
 
 # 常见数学/公式 Unicode 区段
 _MATH_RANGES = [
@@ -280,6 +288,9 @@ def main(argv):
             rec, scores, reason = _probe_pdf(fpath)
         elif ext in IMAGE_EXTS:
             rec, scores, reason = "marker", {"engine": "image"}, "图片需 OCR，使用 marker"
+        elif ext in ANYDOC_EXTS:
+            rec, scores, reason = "anydoc", {"engine": "legacy-office"}, \
+                "旧版 Office / RTF / OpenDocument：快速引擎无对应转换器，交给内置极速引擎"
         elif ext in FAST_EXTS:
             rec, scores, reason = "fast", {"engine": "office/text"}, "结构化/文本文档，使用快速引擎"
         else:
